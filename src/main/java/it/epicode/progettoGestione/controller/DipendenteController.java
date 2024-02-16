@@ -8,6 +8,7 @@ import it.epicode.progettoGestione.model.Dipendente;
 import it.epicode.progettoGestione.model.DipendenteRequest;
 import it.epicode.progettoGestione.service.DipendenteService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,82 +27,42 @@ public class DipendenteController {
     @Autowired
     private Cloudinary cloudinary;
     @GetMapping("/dipendenti")
-    public ResponseEntity<CustomResponse> getAll(Pageable pageable) {
+    public Page<Dipendente> getAll(Pageable pageable){
 
-        try {
-            return CustomResponse.success(HttpStatus.OK.toString(), dipendenteService.cercaTuttiIDipendenti(pageable), HttpStatus.OK);
-        } catch (Exception e) {
-            return CustomResponse.error(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
+        return dipendenteService.cercaTuttiIDipendenti(pageable);
     }
-
     @GetMapping("/dipendenti/{id}")
-    public ResponseEntity<CustomResponse> getDipendenteById(@PathVariable int id) {
-
-        try {
-            return CustomResponse.success(HttpStatus.OK.toString(), dipendenteService.cercaDipendentePerId(id), HttpStatus.OK);
-        } catch (NotFoundException e) {
-            return CustomResponse.error(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
-            return CustomResponse.error(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public Dipendente getDipendenteById(@PathVariable int id){
+        return dipendenteService.cercaDipendentePerId(id);
 
     }
     @PostMapping("/dipendenti")
-    public ResponseEntity<CustomResponse> savePersona(@RequestBody @Validated DipendenteRequest dipendenteRequest, BindingResult bindingResult)  {
-        if(bindingResult.hasErrors()){
-            return CustomResponse.error(bindingResult.getAllErrors().toString(), HttpStatus.BAD_REQUEST);
-
+    public Dipendente saveDipendente(@RequestBody @Validated DipendenteRequest dipendenteRequest, BindingResult bindingResult){
+        if (bindingResult.hasErrors()){
+            throw new BadRequestException(bindingResult.getAllErrors().toString());
         }
 
-        try{
-            return CustomResponse.success(HttpStatus.OK.toString(), dipendenteService.salvaDipendente(dipendenteRequest), HttpStatus.OK);
-        }
-        catch (Exception e){
-            return CustomResponse.error(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return dipendenteService.salvaDipendente(dipendenteRequest);
     }
     @PutMapping("/dipendenti/{id}")
-    public ResponseEntity<CustomResponse> updateDipendente(@PathVariable int id, @RequestBody @Validated DipendenteRequest dipendenteRequest, BindingResult bindingResult) {
-
-        if (bindingResult.hasErrors()) {
-            return CustomResponse.error(bindingResult.getAllErrors().toString(), HttpStatus.BAD_REQUEST);
+    public Dipendente updateDipendente(@PathVariable int id, @RequestBody @Validated  DipendenteRequest dipendenteRequest, BindingResult bindingResult){
+        if (bindingResult.hasErrors()){
+            throw new BadRequestException(bindingResult.getAllErrors().toString());
         }
 
-        try {
-            return CustomResponse.success(HttpStatus.OK.toString(), dipendenteService.aggiornaDipendente(id, dipendenteRequest), HttpStatus.OK);
-        } catch (NotFoundException e) {
-            return CustomResponse.error(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
-            return CustomResponse.error(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return dipendenteService.aggiornaDipendente(id, dipendenteRequest);
     }
 
     @DeleteMapping("/dipendenti/{id}")
-    public ResponseEntity<CustomResponse> deleteDipendente(@PathVariable int id) {
-
-        try {
-            dipendenteService.cancellaDipendente(id);
-            return CustomResponse.emptyResponse("Dipendente con id=" + id + " cancellata", HttpStatus.OK);
-        } catch (NotFoundException e) {
-            return CustomResponse.error(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
-            return CustomResponse.error(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
+    public void deleteDipendente(@PathVariable int id){
+        dipendenteService.cancellaDipendente(id);
     }
 
     @PatchMapping("/dipendenti/{id}/upload")
-    public ResponseEntity<CustomResponse> uploadImmagineProfilo(@PathVariable int id,@RequestParam("upload") MultipartFile file){
-        try {
+    public Dipendente uploadAvatar(@PathVariable int id, @RequestParam("upload") MultipartFile file) throws IOException {
+        return dipendenteService.uploadImmagine(id,
+                (String) cloudinary.uploader().upload(file.getBytes(), new HashMap()).get("url"));
 
-            Dipendente dipendente = dipendenteService.uploadImmagine(id, (String) cloudinary.uploader().upload(file.getBytes(), new HashMap()).get("url"));
-            return CustomResponse.success(HttpStatus.OK.toString(), dipendente,HttpStatus.OK);
-
-        }catch (IOException e){
-            return CustomResponse.error(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
     }
 
 }
