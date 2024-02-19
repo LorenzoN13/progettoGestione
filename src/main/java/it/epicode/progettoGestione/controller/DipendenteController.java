@@ -64,5 +64,4 @@ public class DipendenteController {
                 (String) cloudinary.uploader().upload(file.getBytes(), new HashMap()).get("url"));
 
     }
-
 }
